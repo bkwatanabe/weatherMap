@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Weather Map</title>
+    <style type="text/css">
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #map {
+            height: 100%;
+            position: relative;
+            top: 0;
+            left: 0;
+        }
+        
+        #autocompleteDiv {
+            position: absolute;
+            top: 11px;
+            left: 125px;
+        }
+        
+        #autocomplete {
+            border: 0;
+            border-style: none;
+            height: 26px;
+            width: 200px;
+            border-radius: 2px;
+            padding-left: 5px;
+            font-size: large;
+            outline: none;
+        }
+        
+        #weatherDisplayDiv {
+            position: absolute;
+            bottom: 30px;
+            left: 11px;
+            background-color: white;
+            font-size: small;
+            padding: 2px;
+            border-radius: 2px;
+        }
+        
+        #picker {
+            position: absolute;
+            top: 85px;
+            left: 11px;
+            background-color: white;
+            padding: 2px;
+            border-radius: 2px;
+        }
+        
+        #daterange {
+            width: 95px;
+            cursor: pointer;
+        }
+        
+        #daterange:hover {
+            border: 2px solid #80BCF9;
+        }
+        
+        .center {
+            text-align: center;
+        }
+        
+        #info {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            height: 32px;
+            width: 32px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body onload="firstTime();">
+    <div id="map"></div>
+    <div id="autocompleteDiv">
+        <input type="text" id="autocomplete" />
+    </div>
+    <div id="picker">
+        <b>Query Type</b>
+        <br> Current
+        <input type="radio" name="choice" id="current" onchange="changeQueryType();" checked>
+        <br> Planner
+        <input type="radio" name="choice" id="planner" onchange="changeQueryType();">
+        <div class="plannerInfo" hidden> Date Range:
+            <input type="text" id="daterange" name="daterange" maxlength="13" pattern="/\d{2}//d{2} - d{2}//d{2}/" readonly/>
+            <br> *Max range is 30 days.
+        </div>
+    </div>
+    <!-- free icon from Desigh Revision's GlyphPack -->
+    <svg id="info" fill="grey" enable-background="new 0 0 85 85" height="85px" id="Layer_1" version="1.1" viewBox="0 0 85 85" width="85px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <path d="M42.5,0.003C19.028,0.003,0,19.031,0,42.503s19.028,42.5,42.5,42.5S85,65.976,85,42.503S65.972,0.003,42.5,0.003z   M42.288,66.27c0,0-1.972,1.311-3.32,1.305c-0.12,0.055-0.191,0.087-0.191,0.087l0.003-0.087c-0.283-0.013-0.568-0.053-0.855-0.125  l-0.426-0.105c-2.354-0.584-3.6-2.918-3.014-5.271l3.277-13.211l1.479-5.967c1.376-5.54-4.363,1.178-5.54-1.374  c-0.777-1.687,4.464-5.227,8.293-7.896c0,0,1.97-1.309,3.319-1.304c0.121-0.056,0.192-0.087,0.192-0.087l-0.005,0.087  c0.285,0.013,0.57,0.053,0.857,0.124l0.426,0.106c2.354,0.584,3.788,2.965,3.204,5.318l-3.276,13.212l-1.482,5.967  c-1.374,5.54,4.27-1.204,5.446,1.351C51.452,60.085,46.116,63.601,42.288,66.27z M50.594,24.976  c-0.818,3.295-4.152,5.304-7.446,4.486c-3.296-0.818-5.305-4.151-4.487-7.447c0.818-3.296,4.152-5.304,7.446-4.486  C49.403,18.346,51.411,21.68,50.594,24.976z" />
+    </svg>
+    <div id="weatherDisplayDiv">
+        <table id="weatherDisplay">
+            <tr class="conditionInfo">
+                <th colspan="2" class="center">Current Weather</th>
+            </tr>
+            <tr class="plannerInfo" hidden>
+                <th colspan="2" class="center" id="dateOn"></th>
+            </tr>
+            <tr>
+                <th>Place</th>
+                <td id="place" class="center"></td>
+            </tr>
+            <tr class="conditionInfo">
+                <th>Temp</th>
+                <td id="temp" class="center"></td>
+            </tr>
+            <tr class="conditionInfo">
+                <th>Humidity</th>
+                <td id="humidity" class="center"></td>
+            </tr>
+            <tr class="conditionInfo">
+                <th>Conditions</th>
+                <td id="conditions" class="center"></td>
+            </tr>
+            <tr class="plannerInfo" hidden>
+                <th>Avg. High</th>
+                <td id="avgHigh" class="center"></td>
+            </tr>
+            <tr class="plannerInfo" hidden>
+                <th>Avg. Low</th>
+                <td id="avgLow" class="center"></td>
+            </tr>
+            <tr class="plannerInfo" hidden>
+                <th>Chance of Precip</th>
+                <td id="chanceOfPrecip" class="center"></td>
+            </tr>
+        </table>
+    </div>
+    <!-- Include Required Prerequisites -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/bootstrap/latest/css/bootstrap.css" />
+
+    <!-- Include Date Range Picker -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+    <!-- bootbox -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.4.0/bootbox.min.js"></script>
+    <script type="text/javascript">
+        var myLatLng;
+        var map;
+        var marker;
+        var autocomplete;
+        var place;
+        var lat;
+        var lng;
+        var queryType = "conditions";
+
+        function initialize() {
+            // TODO: try puttin this on a server, see if it works
+            // commented it out so nothing would break on firefox locally
+            // navigator.geolocation.getCurrentPosition(success);
+
+            // if geolocation didn't work, set default to UCSD
+            if (lat == undefined || lng == undefined) {
+                lat = 32.853088;
+                lng = -117.182882;
+            }
+
+            myLatLng = new google.maps.LatLng(lat, lng);
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: myLatLng,
+                zoom: 15
+            });
+
+            marker = new google.maps.Marker({
+                map: map,
+                animation: google.maps.Animation.DROP,
+                position: myLatLng
+            });
+            marker.setMap(map);
+
+            var request = {
+                location: myLatLng,
+                radius: '10',
+                query: 'UCSD Extension'
+            };
+
+            service = new google.maps.places.PlacesService(map);
+            service.textSearch(request, callback);
+
+            autocomplete = new google.maps.places.Autocomplete(document.getElementById('autocomplete'), {});
+            autocomplete.addListener('place_changed', updateGeocode);
+        }
+
+        // set lat and lng if possible to get user's position
+        // need to try deploying to server
+        function success(position) {
+            lat = position.coords.latitude;
+            lng = position.coords.longitude;
+        };
+
+        function callback(results, status) {
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+                place = results[0];
+                getWeather(lat, lng);
+            }
+        }
+
+        function updateGeocode() {
+            place = autocomplete.getPlace();
+
+            // set map: if place has a viewport, show it.
+            if (place.geometry.viewport) {
+                map.fitBounds(place.geometry.viewport);
+            } else {
+                map.setCenter(place.geometry.location);
+                map.setZoom(17); // Why 17? Because it looks good.
+            }
+
+            //set myLatLng
+            lat = place.geometry.location.lat();
+            lng = place.geometry.location.lng();
+            myLatLng = new google.maps.LatLng(lat, lng);
+
+            //set marker
+            marker.position = myLatLng;
+            marker.setMap(map);
+
+            getWeather();
+        }
+
+        function changeQueryType() {
+            if (document.getElementById("current").checked) {
+                queryType = "conditions";
+                editStyleOfClass("conditionInfo", unhideElement);
+                editStyleOfClass("plannerInfo", hideElement);
+            } else if (document.getElementById("planner").checked) {
+                queryType = "planner";
+                editStyleOfClass("plannerInfo", unhideElement);
+                editStyleOfClass("conditionInfo", hideElement);
+            }
+            getWeather();
+        }
+
+        function getWeather() {
+            //have conditions part of url check if current or planner is checked and replace as necessary
+            if (queryType.includes("planner")) {
+                document.getElementById("dateOn").innerHTML = "Weather from " + document.getElementById("daterange").value;
+                queryType = "planner_" + parseDateRangePicker();
+            }
+            //input geocode into weather api
+            weatherUrl = "http://api.wunderground.com/api/eb08ebcb047cc8d1/" + queryType + "/q/" + lat + "," + lng + ".json";
+            httpRequest = new XMLHttpRequest();
+            httpRequest.onreadystatechange = returnConditions;
+            httpRequest.open("GET", weatherUrl, true);
+            httpRequest.send(null);
+        }
+
+        //read output from json
+        function returnConditions() {
+            if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                // everything is good, the response is received
+                if (httpRequest.status === 200) {
+                    responseJSON = JSON.parse(httpRequest.responseText);
+
+                    document.getElementById("place").innerHTML = place.name;
+
+                    if (queryType == "conditions") {
+                        document.getElementById("temp").innerHTML = responseJSON.current_observation.temp_f + "&deg;F";
+                        document.getElementById("humidity").innerHTML = responseJSON.current_observation.relative_humidity;
+                        document.getElementById("conditions").innerHTML = responseJSON.current_observation.weather;
+                    } else if (queryType.includes("planner")) {
+                        document.getElementById("avgHigh").innerHTML = responseJSON.trip.temp_high.avg.F + "&deg;F";
+                        document.getElementById("avgLow").innerHTML = responseJSON.trip.temp_low.avg.F + "&deg;F";
+                        document.getElementById("chanceOfPrecip").innerHTML = responseJSON.trip.chance_of.chanceofprecip.percentage + "%";
+                    }
+                } else {
+                    console.log("status = " + httpRequest.status);
+                    // there was a problem with the request,
+                    // for example the response may contain a 404 (Not Found)
+                    // or 500 (Internal Server Error) response code
+                }
+            } else {
+                if (queryType == "conditions") {
+                    document.getElementById("temp").innerHTML = "Loading...";
+                    document.getElementById("humidity").innerHTML = "Loading...";
+                    document.getElementById("conditions").innerHTML = "Loading...";
+                } else if (queryType.includes("planner")) {
+                    document.getElementById("avgHigh").innerHTML = "Loading...";
+                    document.getElementById("avgLow").innerHTML = "Loading...";
+                    document.getElementById("chanceOfPrecip").innerHTML = "Loading...";
+                }
+            }
+        }
+
+        function editStyleOfClass(className, func) {
+            var elements = document.getElementsByClassName(className);
+            for (var i = 0; i < elements.length; i++) {
+                func(elements[i]);
+            }
+        }
+
+        function hideElement(element) {
+            element.hidden = true;
+        }
+
+        function unhideElement(element) {
+            element.hidden = false;
+        }
+
+        function dateToMMDD(date) {
+            // month is in 0 based numbering
+            var month = date.getMonth();
+            // to put it in usable format
+            month++;
+            month = numToTwoChar(month);
+            // day is in 1 based numbering
+            var day = date.getDate();
+            day = numToTwoChar(day);
+            return month + day;
+        }
+
+        function numToTwoChar(num) {
+            if (num < 10) {
+                num = "0" + num;
+            } else {
+                num = num.toString();
+            }
+            return num;
+        }
+
+        // daterangepicker from www.daterangepicker.com
+        // uses jquery, moment.js, and bootstrap
+        $(function () {
+            var today = new Date();
+            var nextWeek = new Date(today);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            $('input[name="daterange"]').daterangepicker({
+                locale: {
+                    format: 'MM/DD'
+                },
+                startDate: dateToMMDD(today),
+                endDate: dateToMMDD(nextWeek),
+                dateLimit: {
+                    days: 30
+                },
+                "showDropdowns": true,
+                autoApply: true
+            });
+        });
+
+        // get weather on daterangepicker apply
+        $('#daterange').on('apply.daterangepicker', getWeather);
+
+        // strip out the slashes, spaces and dashes from date picker
+        function parseDateRangePicker() {
+            var dateRange = document.getElementById("daterange").value;
+            var re = /[/ -]/;
+            dateRange = dateRange.split(re).join("");
+            return dateRange;
+        }
+
+        document.getElementById("info").addEventListener("click", showInstructions);
+
+        // only want to show dialog on startup once
+        function firstTime() {
+            if (localStorage.getItem("seenAppBefore") == null) {
+                localStorage.setItem("seenAppBefore", true);
+                showInstructions();
+            }
+        }
+        
+        // bootbox for instruction dialog
+        function showInstructions() {
+            bootbox.dialog({
+                title: "Weather Map Instructions",
+                message: "Hi! Thank you for using this app! <br><br>Type any location into the text box and " +
+                    "select whether you'd like to receive current or historical weather info. " +
+                    "All query results are displayed in the bottom left corner. " +
+                    "<br><br>If you select the planner option, click on the date range field to select " +
+                    "what time of the year you would like weather info for. <br><br>If you forget how to " +
+                    "use this app, please click on the info icon in the top right to see this " +
+                    "message again.",
+                show: true,
+                onEscape: function () {},
+                closeButton: true,
+                animate: true,
+                buttons: {
+                    "Got it!": {}
+                }
+            });
+        }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXVnnfN6d_AfuDQpkGPBZFj-_bykACpIE&callback=initialize&libraries=places">
+    </script>
+</body>
+
+</html>
